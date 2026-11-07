@@ -1,0 +1,17 @@
+# mixu-renderer: workspace identity descriptor (mirrors workspace.toml).
+[repo]
+name = "mixu-renderer"
+kind = "core"
+lang = "kotlin"
+role = "Compose Canvas graph rendering, layout, E-Ink display policy"
+visibility = "public"
+owner = "mixu-core"
+docs = "mixu-docs"
+
+[contracts.provides]
+renderer = "src/main/kotlin/.../GraphCanvas"     # stable-layout canvas + interaction
+layout-policy = "src/main/kotlin/.../Layout"  # deterministic positions across reveals
+
+[contracts.consumes]
+graph-model = "mixu-graph: model"
+horizon-policy = "mixu-spoiler: policy"
