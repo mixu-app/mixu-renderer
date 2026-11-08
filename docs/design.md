@@ -1,6 +1,6 @@
 # Design: stable-layout graph canvas
 
-Status: **Proposed** · Owner: mixu-core · Consumes: `mixu-graph`, `mixu-spoiler`
+Status: **Active** · Owner: mixu-core · Consumes: `mixu-graph`, `mixu-spoiler`
 
 ## Why layout stability is a requirement
 

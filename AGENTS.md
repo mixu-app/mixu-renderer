@@ -47,7 +47,7 @@
 ## Gates
 
 ```sh
-just check      # markdownlint + gradle (phase exception until wrapper lands)
+just check      # markdownlint + gradle check
 ```
 
 ## CarryCtx
