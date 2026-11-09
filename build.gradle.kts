@@ -4,10 +4,11 @@ plugins {
     id("mixu.kotlin.multiplatform")
     id("mixu.quality")
     id("mixu.reproducible")
+    id("mixu.maven.publish")
 }
 
 group = "app.mixu"
-version = "0.1.0"
+version = "0.0.1"
 description = "Compose Canvas graph rendering, layout, and E-Ink policy for Mixu."
 
 kotlin {
