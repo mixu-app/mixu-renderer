@@ -244,4 +244,132 @@ class ProjectionLensEngineTest {
             DeterministicLayoutEngine.computePositions(editionId.value, truncNodes, bounds)
         assertEquals(truncPositions, fullPositions)
     }
+
+    @Test
+    fun adr043QualifiersActivateCanonicalLensesWhileIsolatingStorylineFromInnerWork() {
+        val eDet = EntityId("entity:detective")
+        val eChronicle = EntityId("entity:chronicle")
+        val eActor = EntityId("entity:actor")
+        val eAlias = EntityId("entity:alias")
+
+        val basePack =
+            GraphPack(
+                manifest = manifest,
+                entities =
+                    listOf(
+                        Entity(eDet, EntityType.PERSON, firstReveal = 1),
+                        Entity(eChronicle, EntityType.TEXT_WORK, firstReveal = 1),
+                        Entity(eActor, EntityType.PERSON, firstReveal = 2),
+                        Entity(eAlias, EntityType.PERSONA, firstReveal = 2),
+                    ),
+                names =
+                    listOf(
+                        EntityName(
+                            NameId("n:det"),
+                            eDet,
+                            "Investigator Lin",
+                            1,
+                            NameKind.CANONICAL,
+                        ),
+                        EntityName(NameId("n:chr"), eChronicle, "Old Gazette", 1, NameKind.TITLE),
+                        EntityName(NameId("n:act"), eActor, "Caretaker Wu", 2, NameKind.CANONICAL),
+                        EntityName(NameId("n:als"), eAlias, "Night Courier", 2, NameKind.ALIAS),
+                    ),
+                assertions =
+                    listOf(
+                        Assertion(
+                            assertionId = AssertionId("asr:storyline_ref"),
+                            subjectId = eDet,
+                            predicate = "cited_record",
+                            objectRef = ObjectRef.Entity(eChronicle),
+                            qualifier =
+                                mapOf(
+                                    "diegetic_layer" to "REFERENCE_TEXT",
+                                    "storyline" to "island_strand",
+                                ),
+                            attribution =
+                                Attribution(
+                                    kind = AttributionKind.OBSERVATION,
+                                    speakerId = eChronicle,
+                                ),
+                            firstReveal = 1,
+                            evidenceAnchorId = EvidenceAnchorId("anc:1"),
+                            epistemicStatus = EpistemicStatus.OBSERVED,
+                        ),
+                        Assertion(
+                            assertionId = AssertionId("asr:story_time_hyp"),
+                            subjectId = eDet,
+                            predicate = "arrived_at",
+                            objectRef = ObjectRef.Literal("harbor"),
+                            qualifier =
+                                mapOf(
+                                    "story_time" to "1986-04-02T20:00",
+                                    "loop_epoch" to "2",
+                                    "hypothesis_frame" to "theory:ferry_timing",
+                                ),
+                            attribution = Attribution(AttributionKind.OBSERVATION),
+                            firstReveal = 2,
+                            evidenceAnchorId = EvidenceAnchorId("anc:2"),
+                            epistemicStatus = EpistemicStatus.OBSERVED,
+                        ),
+                        Assertion(
+                            assertionId = AssertionId("asr:inner_work"),
+                            subjectId = eActor,
+                            predicate = "appeared_in_manuscript",
+                            objectRef = ObjectRef.Literal("chapter_one"),
+                            qualifier =
+                                mapOf(
+                                    "diegetic_layer" to "INNER_WORK",
+                                    "doc_id" to "doc:inner_manuscript",
+                                ),
+                            attribution = Attribution(AttributionKind.NARRATOR),
+                            firstReveal = 3,
+                            evidenceAnchorId = EvidenceAnchorId("anc:3"),
+                            epistemicStatus = EpistemicStatus.OBSERVED,
+                        ),
+                    ),
+                identityLinks =
+                    listOf(
+                        IdentityLink(
+                            linkId = LinkId("lnk:hyp"),
+                            entityIds = listOf(eActor, eAlias),
+                            kind = IdentityLinkKind.CANDIDATE,
+                            firstReveal = 2,
+                            epistemicStatus = EpistemicStatus.OBSERVED,
+                            hypothesisFrame = "theory:courier_mask",
+                        ),
+                    ),
+            )
+
+        val fullEngine = TemporalProjectionEngine(basePack)
+        val view1 = fullEngine.project(1)
+        val state1 = ProjectionLensEngine.deriveLenses(view1)
+        assertFalse(ProjectionLens.INNER_WORK in state1.activeLenses)
+        assertFalse(ProjectionLens.TIMELINE in state1.activeLenses)
+        assertFalse(ProjectionLens.HYPOTHESIS_FRAME in state1.activeLenses)
+
+        val view2 = fullEngine.project(2)
+        val state2 = ProjectionLensEngine.deriveLenses(view2)
+        assertTrue(ProjectionLens.TIMELINE in state2.activeLenses)
+        assertTrue(ProjectionLens.HYPOTHESIS_FRAME in state2.activeLenses)
+        assertFalse(ProjectionLens.INNER_WORK in state2.activeLenses)
+
+        // P-SPOILER-09: prefix truncation before ordinal 3 omits INNER_WORK identically
+        val truncatedPack =
+            GraphPack(
+                manifest = manifest,
+                entities = basePack.entities.filter { it.firstReveal <= 2 },
+                names = basePack.names.filter { it.firstReveal <= 2 },
+                assertions = basePack.assertions.filter { it.firstReveal <= 2 },
+                identityLinks = basePack.identityLinks.filter { it.firstReveal <= 2 },
+            )
+        assertEquals(
+            state2,
+            ProjectionLensEngine.deriveLenses(TemporalProjectionEngine(truncatedPack).project(2)),
+        )
+
+        val view3 = fullEngine.project(3)
+        val state3 = ProjectionLensEngine.deriveLenses(view3)
+        assertTrue(ProjectionLens.INNER_WORK in state3.activeLenses)
+    }
 }

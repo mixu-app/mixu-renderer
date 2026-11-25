@@ -15,6 +15,7 @@ enum class ProjectionLens {
     IDENTITY_RESOLUTION,
     LOCATION_MAP,
     EVIDENCE_LEDGER,
+    INNER_WORK,
 }
 
 /**
@@ -35,7 +36,18 @@ data class ProjectionLensState(
  */
 object ProjectionLensEngine {
     private val TIMELINE_QUALIFIER_KEYS =
-        setOf("time", "timestamp", "era", "timeline", "date", "day", "loop", "iteration")
+        setOf(
+            "story_time",
+            "loop_epoch",
+            "time",
+            "timestamp",
+            "era",
+            "timeline",
+            "date",
+            "day",
+            "loop",
+            "iteration",
+        )
 
     private val HYPOTHESIS_STATUSES =
         setOf(
@@ -70,6 +82,7 @@ object ProjectionLensEngine {
             view.hypothesizedIdentityLinks.isNotEmpty() ||
                 view.assertions.any { revealed ->
                     revealed.currentStatus in HYPOTHESIS_STATUSES ||
+                        revealed.assertion.qualifier.containsKey("hypothesis_frame") ||
                         revealed.assertion.qualifier.containsKey("frame_id")
                 }
         if (hasHypothesisSignal) {
@@ -90,6 +103,15 @@ object ProjectionLensEngine {
 
         if (view.assertions.isNotEmpty()) {
             active.add(ProjectionLens.EVIDENCE_LEDGER)
+        }
+
+        val hasInnerWorkSignal =
+            view.assertions.any { revealed ->
+                revealed.assertion.qualifier["diegetic_layer"]
+                    ?.equals("INNER_WORK", ignoreCase = true) == true
+            }
+        if (hasInnerWorkSignal) {
+            active.add(ProjectionLens.INNER_WORK)
         }
 
         return ProjectionLensState(
